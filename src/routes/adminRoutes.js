@@ -1,0 +1,80 @@
+const express = require("express");
+const router = express.Router();
+const adminController = require("../controller/adminController");
+const { superAdminOnly } = require("../middleware/adminAuth");
+const keyAccountsImportUpload = require("../middleware/keyAccountsImportUpload");
+
+// All routes are protected by auth + superAdminAuth middleware (applied in server.js)
+
+router.get("/system-health", adminController.getSystemHealth);
+
+// Person management (database records)
+router.post("/persons", adminController.createPerson);
+router.get("/persons", adminController.getPersonsByType);
+router.delete("/persons/:personId", adminController.deletePersonWithoutPortalAccess);
+
+// Hierarchy dropdowns
+router.get("/gms", adminController.getGMs);
+router.get("/managers", adminController.getManagers);
+router.get("/executives", adminController.getExecutives);
+router.get("/executives/pending-onboarding", adminController.getPendingImportedExecutives);
+router.post("/executives/:executiveId/complete-onboarding", adminController.completeImportedExecutiveOnboarding);
+router.post(
+  "/imports/key-accounts",
+  superAdminOnly,
+  keyAccountsImportUpload.single("file"),
+  adminController.importKeyAccountsFromExcelUpload
+);
+router.get(
+  "/imports/key-accounts/jobs/:jobId",
+  superAdminOnly,
+  adminController.getKeyAccountsImportJob
+);
+router.post(
+  "/imports/ebu",
+  superAdminOnly,
+  keyAccountsImportUpload.single("file"),
+  adminController.importEbuFromExcelUpload
+);
+router.get(
+  "/imports/ebu/jobs/:jobId",
+  superAdminOnly,
+  adminController.getEbuImportJob
+);
+router.put("/executives/:executivePersonId/promote-supervisor", adminController.promoteExecutiveToSupervisor);
+router.put("/executives/:supervisorPersonId/demote-executive", adminController.demoteSupervisorToExecutive);
+
+// Portal access management
+router.post("/portal-access", adminController.createPortalAccess);
+router.delete("/portal-users/:userId", adminController.revokePortalAccess);
+router.get("/portal-users", adminController.getPortalUsers);
+
+// Customer account management
+router.post("/corporates", adminController.createCorporate);
+router.get("/corporates", adminController.getCorporates);
+router.get("/corporates/no-contact-persons", adminController.getCorporatesWithoutContactPersons);
+router.post("/corporates/:corporateId/submit-approval", adminController.submitCorporateApproval);
+router.put("/corporates/:corporateId/approve", adminController.approveCorporate);
+router.put("/corporates/:corporateId/reassign-executive", adminController.reassignCorporateExecutive);
+router.get("/corporates/:corporateId/contact-persons", adminController.getCorporateContactPersons);
+router.post("/corporates/:corporateId/contact-persons", adminController.assignContactPersonToCorporate);
+router.delete(
+  "/corporates/:corporateId/contact-persons/:accountManagerId",
+  adminController.removeContactPersonFromCorporate
+);
+router.post("/accounts", adminController.createAccount);
+router.get("/accounts", adminController.getAccounts);
+router.put("/accounts/:accountId/approve", adminController.approveAccount);
+router.post("/accounts/:accountId/contracts", adminController.createContract);
+router.get("/accounts/:accountId/contracts", adminController.getAccountContracts);
+router.get("/contracts/expiring", adminController.getExpiringContracts);
+router.post("/accounts/:accountId/services", adminController.createService);
+router.get("/accounts/:accountId/services", adminController.getAccountServices);
+router.put("/accounts/:accountId/services/:serviceId", adminController.updateServiceStatus);
+router.delete("/accounts/:accountId/services/:serviceId", adminController.deleteService);
+router.post("/accounts/:accountId/invoices", adminController.createInvoice);
+router.get("/invoices", adminController.getInvoices);
+router.get("/spending/monthly-summary", adminController.getManagerMonthlySpendingSummary);
+router.get("/spending/monthly-trend", adminController.getManagerMonthlySpendingTrend);
+
+module.exports = router;
