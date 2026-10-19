@@ -18,6 +18,7 @@ const Notification = require("../models/Notification");
 const { createForUserIds } = require("../services/notificationService");
 const { recordAudit, actorDisplayName, clientIp } = require("../services/auditService");
 const {
+  ensureDefaultAccountForCorporate,
   getCorporateIdsForAccountManager,
   enrichAccountsWithCorporateContact,
   propagateContactPersonToCorporateAccounts,
@@ -1400,6 +1401,10 @@ exports.getMyAccount = async (req, res) => {
       linkedCorporates.map((c) => [c.corporateId, c])
     );
 
+    for (const corp of linkedCorporates) {
+      await ensureDefaultAccountForCorporate(corp, accountManager);
+    }
+
     const accounts = await Account.findAll({
       where: { corporateId: linkedCorporateIds },
       order: [["created_at", "DESC"]],
@@ -1957,6 +1962,7 @@ exports.assignContactPersonToMyCorporate = async (req, res) => {
     });
 
     try {
+      await ensureDefaultAccountForCorporate(corporate, accountManager);
       await propagateContactPersonToCorporateAccounts(corporate.corporateId, accountManager);
     } catch (propagationError) {
       console.error("Propagate contact to corporate accounts failed:", propagationError);
@@ -2101,6 +2107,7 @@ exports.createContactPersonForMyCorporate = async (req, res) => {
     });
 
     try {
+      await ensureDefaultAccountForCorporate(corporate, accountManager);
       await propagateContactPersonToCorporateAccounts(corporate.corporateId, accountManager);
     } catch (propagationError) {
       console.error("Propagate contact to corporate accounts failed:", propagationError);

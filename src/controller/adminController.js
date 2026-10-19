@@ -27,6 +27,7 @@ const {
   propagateContactPersonToCorporateAccounts,
   enrichAccountsWithCorporateContact,
   getContactPersonsForCorporate,
+  ensureDefaultAccountForCorporate,
 } = require("../services/contactPersonService");
 const { Op } = require("sequelize");
 const { sequelize } = require("../config/database");
@@ -386,6 +387,7 @@ exports.createPerson = async (req, res) => {
       // an import placeholder, so executive/manager dashboards that read
       // per-account contact fields immediately reflect the new contact.
       try {
+        await ensureDefaultAccountForCorporate(selectedCorporate, accountManager);
         await propagateContactPersonToCorporateAccounts(
           selectedCorporate.corporateId,
           accountManager
@@ -1550,6 +1552,12 @@ exports.createCorporate = async (req, res) => {
       approvalStatus: "pending",
     });
 
+    try {
+      await ensureDefaultAccountForCorporate(corporate);
+    } catch (accountErr) {
+      console.error("Default account for new corporate failed:", accountErr);
+    }
+
     realtime.broadcastResources(["corporates", "dashboard"]);
     return res.status(201).json({ status: "Success", message: "Corporate created successfully", corporate });
   } catch (error) {
@@ -2210,6 +2218,7 @@ exports.assignContactPersonToCorporate = async (req, res) => {
     // info is empty or a known import-placeholder. Real, manually-entered
     // contacts on individual accounts are left untouched.
     try {
+      await ensureDefaultAccountForCorporate(corporate, accountManager);
       await propagateContactPersonToCorporateAccounts(corporate.corporateId, accountManager);
     } catch (propagationError) {
       console.error("Propagate contact to corporate accounts failed:", propagationError);
