@@ -70,6 +70,7 @@ const normalizeOrigin = (value) =>
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.CORS_ORIGINS,
+  'https://businessuat.mtc.com.na',
   'http://localhost:5173',
   'http://41.219.71.112:8081',
   'http://172.19.20.201:8080',
